@@ -36,10 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function parseCSV(text) {
     const lines = text.split('\n');
-    const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, '')); // Limpia cabeceras
+    // CORRECCIÓN: Se limpian las comillas y espacios extra de las cabeceras
+    const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, '')); 
     const records = [];
     for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(value => value.trim().replace(/"/g, '')); // Limpia valores
+        // CORRECCIÓN: Se limpian las comillas y espacios extra de los valores
+        const values = lines[i].split(',').map(value => value.trim().replace(/"/g, '')); 
         if (values.length === headers.length) {
             let record = {};
             headers.forEach((header, index) => {
