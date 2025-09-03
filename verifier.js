@@ -1,71 +1,70 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // URL de tu función sin servidor
-    const API_ENDPOINT = 'https://carnet-api-green.vercel.app/api/handler';
+    // Lógica de Verificación v2.1
+    // Ahora se comunica de forma segura con la API en Vercel.
 
-    const params = new URLSearchParams(window.location.search);
-    const matriculaId = params.get('id');
+    document.addEventListener('DOMContentLoaded', async () => {
+        const resultContainer = document.getElementById('result-container');
+        const params = new URLSearchParams(window.location.search);
+        const matriculaId = params.get('id');
 
-    if (!matriculaId) {
-        displayError('No se proporcionó una matrícula para verificar.');
-        return;
+        // Muestra un estado de carga inicial
+        resultContainer.innerHTML = `<h1 class="text-2xl font-bold text-gray-800">Verificando...</h1>`;
+
+        if (!matriculaId) {
+            displayError('No se proporcionó un ID de carnet.');
+            return;
+        }
+        
+        // La URL del "cerebro" en Vercel
+        const API_ENDPOINT = 'https://carnet-api-green.vercel.app/api/handler';
+        const verificationUrl = `${API_ENDPOINT}?id=${matriculaId}`;
+
+        try {
+            const response = await fetch(verificationUrl);
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                displaySuccess(result.data);
+            } else {
+                displayError(result.message || 'Carnet no encontrado o inválido.');
+            }
+        } catch (error) {
+            console.error('Error fetching verification data:', error);
+            displayError('No se pudo conectar con el servidor de verificación.');
+        }
+    });
+
+    function displaySuccess(data) {
+        const resultContainer = document.getElementById('result-container');
+        // Transforma la lista de cursos en elementos de lista HTML
+        const coursesList = data.cursos.split(', ').map(curso => `<li class="ml-5 list-disc">${curso}</li>`).join('');
+
+        resultContainer.innerHTML = `
+            <div class="flex justify-center mb-4">
+                <svg class="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Carnet Válido y Oficial</h1>
+            <div class="text-left mt-6 space-y-2 text-gray-700">
+                <p><strong>Nombre:</strong> ${data.nombre}</p>
+                <p><strong>DNI:</strong> ${data.dni}</p>
+                <p><strong>Matrícula:</strong> ${data.matricula}</p>
+                <p><strong>Vence:</strong> <span class="font-bold text-red-600">${data.vence}</span></p>
+                <div class="mt-4">
+                    <p><strong>Historial de Cursos/Especialidades:</strong></p>
+                    <ul class="mt-1">${coursesList}</ul>
+                </div>
+            </div>
+        `;
     }
 
-    fetch(`${API_ENDPOINT}?id=${matriculaId}`)
-        .then(response => {
-            if (response.status === 404) {
-                throw new Error('Matrícula no encontrada en el registro oficial.');
-            }
-            if (!response.ok) {
-                throw new Error('No se pudo conectar con el servidor de verificación.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            displaySuccess(data);
-        })
-        .catch(error => {
-            console.error("Error:", error);
-            displayError(error.message);
-        });
-});
-
-function displaySuccess(data) {
-    const resultContainer = document.getElementById('result-container');
-    
-    // Formatear la lista de cursos
-    const cursosHtml = (data.cursos || 'Sin cursos registrados')
-        .split(',')
-        .map(curso => `<li class="bg-indigo-100 text-indigo-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded">${curso.trim()}</li>`)
-        .join('');
-
-    resultContainer.innerHTML = `
-        <div class="flex justify-center mb-4">
-            <svg class="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </div>
-        <h1 class="text-2xl font-bold text-gray-800">Carnet Válido y Oficial</h1>
-        <div class="text-left mt-6 space-y-3 text-gray-700 border-t pt-4">
-            <p><strong>Titular:</strong> ${data.nombre || 'No disponible'}</p>
-            <p><strong>DNI:</strong> ${data.dni || 'No disponible'}</p>
-            <p><strong>Matrícula:</strong> <span class="font-bold text-gray-900">${data.matricula || 'No disponible'}</span></p>
-            <div class="pt-2">
-                <h3 class="text-md font-semibold mb-2">Historial de Cursos:</h3>
-                <ul class="flex flex-wrap gap-2">
-                    ${cursosHtml}
-                </ul>
+    function displayError(message) {
+        const resultContainer = document.getElementById('result-container');
+        resultContainer.innerHTML = `
+            <div class="flex justify-center mb-4">
+                <svg class="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <p class="pt-2"><strong>Vence:</strong> <span class="font-bold text-red-600">${data.vence || 'No disponible'}</span></p>
-        </div>
-    `;
-}
-
-function displayError(message) {
-    const resultContainer = document.getElementById('result-container');
-    resultContainer.innerHTML = `
-        <div class="flex justify-center mb-4">
-            <svg class="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </div>
-        <h1 class="text-2xl font-bold text-gray-800">Carnet Inválido</h1>
-        <p class="text-gray-600 mt-2">${message}</p>
-    `;
-}
+            <h1 class="text-2xl font-bold text-gray-800">Carnet Inválido</h1>
+            <p class="text-gray-600 mt-2">${message}</p>
+        `;
+    }
+    
 
